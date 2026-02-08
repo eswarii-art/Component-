@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PicPop</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Rubik', sans-serif;
+  background: linear-gradient(135deg,#ff9a9e,#fad0c4,#fbc2eb);
+  color: #333;
+}
+
+/* Splash */
+#splash{
+  position:fixed;
+  inset:0;
+  background:linear-gradient(135deg,#ff4d6d,#845ec2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  color:white;
+  z-index:10;
+}
+#splash h1{
+  font-family:Pacifico;
+  font-size:4rem;
+}
+
+/* Nav */
+nav {
+  display: flex;
+  justify-content: space-around;
+  background: white;
+  padding: 10px;
+  border-radius: 0 0 20px 20px;
+}
+
+nav button {
+  background: linear-gradient(135deg,#ff4d6d,#845ec2);
+  color: white;
+  border: none;
+  font-size: 15px;
+  padding:8px 16px;
+  border-radius: 20px;
+}
+
+/* Sections */
+section {
+  display: none;
+  padding: 15px;
+  text-align:center;
+}
+.active { display: block; }
+
+/* Canvas */
+canvas {
+  max-width: 100%;
+  background: white;
+  border-radius: 15px;
+  box-shadow:0 10px 25px rgba(0,0,0,.2);
+}
+
+/* Buttons */
+.action{
+  background:linear-gradient(135deg,#ff4d6d,#845ec2);
+  color:white;
+  border:none;
+  border-radius:20px;
+  padding:8px 16px;
+  margin:5px;
+}
+
+.filter-btn{
+  background:#ffd166;
+  border:none;
+  border-radius:15px;
+  margin:4px;
+  padding:6px 12px;
+}
+
+/* Gallery */
+.gallery img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  margin: 5px;
+  border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Splash Logo -->
+<div id="splash">
+  <h1>PicPop</h1>
+  <p>Pop your photos ✨</p>
+</div>
+
+<nav>
+  <button onclick="show('editor')">Editor</button>
+  <button onclick="show('filter')">Filter</button>
+  <button onclick="show('gallery')">Gallery</button>
+</nav>
+
+<!-- EDITOR -->
+<section id="editor" class="active">
+  <h2>PicPop Editor</h2>
+  <input type="file" id="upload">
+  <br><br>
+  <canvas id="canvas"></canvas>
+  <br>
+  <input type="text" id="text" placeholder="Add text 💖">
+  <button class="action" onclick="drawText()">Add</button>
+</section>
+
+<!-- FILTER -->
+<section id="filter">
+  <h2>Cute Filters ✨</h2>
+  <canvas id="filterCanvas"></canvas>
+  <br>
+
+  <button class="filter-btn" onclick="setFilter('none')">Clean</button>
+  <button class="filter-btn" onclick="setFilter('brightness(110%) saturate(120%)')">Bright Pop</button>
+  <button class="filter-btn" onclick="setFilter('contrast(105%) brightness(115%)')">Soft Glow</button>
+  <button class="filter-btn" onclick="setFilter('saturate(140%) hue-rotate(340deg)')">Pink Dream</button>
+  <button class="filter-btn" onclick="setFilter('brightness(105%) saturate(110%) blur(0.5px)')">Pastel</button>
+  <button class="filter-btn" onclick="setFilter('brightness(110%) hue-rotate(20deg)')">Warm Sun</button>
+  <button class="filter-btn" onclick="setFilter('brightness(105%) hue-rotate(200deg)')">Cool Sky</button>
+  <button class="filter-btn" onclick="setFilter('contrast(110%) saturate(90%)')">Vintage Soft</button>
+  <button class="filter-btn" onclick="setFilter('brightness(95%) contrast(120%)')">Moody</button>
+  <button class="filter-btn" onclick="setFilter('contrast(90%) brightness(105%)')">Matte</button>
+
+  <br><br>
+  <button class="action" onclick="saveToGallery()">Save to Gallery 📥</button>
+</section>
+
+<!-- GALLERY -->
+<section id="gallery">
+  <h2>Your Gallery</h2>
+  <div class="gallery" id="galleryBox"></div>
+</section>
+
+<script>
+/* Splash */
+setTimeout(()=> splash.style.display="none",2000);
+
+/* Navigation */
+function show(id){
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* Main Image */
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let filterCanvas = document.getElementById("filterCanvas");
+let fctx = filterCanvas.getContext("2d");
+let img = new Image();
+let currentFilter="none";
+let gallery=[];
+
+/* Upload once */
+upload.onchange = e => {
+  let r = new FileReader();
+  r.onload = ()=> img.src = r.result;
+  r.readAsDataURL(e.target.files[0]);
+}
+
+/* Image load fix */
+img.onload = ()=>{
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  filterCanvas.width = img.naturalWidth;
+  filterCanvas.height = img.naturalHeight;
+
+  ctx.drawImage(img,0,0);
+  redraw();
+}
+
+/* Editor text */
+function drawText(){
+  ctx.drawImage(img,0,0);
+  ctx.font = "40px Pacifico";
+  ctx.fillStyle = "white";
+  ctx.textAlign="center";
+  ctx.fillText(text.value,canvas.width/2,canvas.height-40);
+
+  ctx.font = "14px Rubik";
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.textAlign = "right";
+  ctx.fillText("Made by Eswari", canvas.width-10, canvas.height-10);
+
+  redraw();
+}
+
+/* Filters */
+function setFilter(f){
+  currentFilter=f;
+  redraw();
+}
+
+function redraw(){
+  fctx.filter=currentFilter;
+  fctx.drawImage(canvas,0,0);
+  fctx.filter="none";
+
+  fctx.font = "14px Rubik";
+  fctx.fillStyle = "rgba(0,0,0,0.4)";
+  fctx.textAlign = "right";
+  fctx.fillText("Made by Eswari", filterCanvas.width-10, filterCanvas.height-10);
+}
+
+/* Save */
+function saveToGallery(){
+  gallery.push(filterCanvas.toDataURL());
+  renderGallery();
+  alert("Saved 💖");
+}
+
+/* Gallery */
+function renderGallery(){
+  galleryBox.innerHTML="";
+  gallery.forEach(src=>{
+    let im = document.createElement("img");
+    im.src = src;
+    galleryBox.appendChild(im);
+  });
+}
+</script>
+
+</body>
+</html>
